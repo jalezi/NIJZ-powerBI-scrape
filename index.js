@@ -1,17 +1,27 @@
 import path from 'path';
 import { scrap_NIJZ_powerBI, readCSV, writeCSV } from './src/index.js';
 
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
 const dir = process.cwd();
 const now = Date.now();
-const filePath = path.resolve(
+const backupPath = path.resolve(
   dir,
-  `csv/vaccination-administered-backup-${now}.csv`
+  `csv/backup/vaccination-administered-backup-${now}.csv`
 );
+
+const testPath = path.resolve(
+  dir,
+  'csv/vaccination-administered 2021-03-25.csv'
+);
+
+const parseCSV =
+  process.env.NODE_ENV === 'development' ? readCSV(testPath) : readCSV();
 
 const start = async () => {
   const data = await scrap_NIJZ_powerBI();
   const { vaccination } = data;
-  const oldData = await readCSV();
+  const oldData = await parseCSV();
   const lastOld = oldData.slice(-1).pop();
 
   const { date: lastDate } = lastOld;
@@ -28,11 +38,13 @@ const start = async () => {
         vaccination['vaccination.administered2nd.todate'] -
         lastOld['vaccination.administered2nd.todate'],
     };
+
     const newData = [...oldData, newObj];
     writeCSV(newData);
-    return writeCSV(newData, filePath);
+    writeCSV(newData, backupPath);
+  } else {
+    console.log('No change!\n', { lastOld, vaccination });
   }
-  console.log('No change!', { lastOld, vaccination });
 };
 
 start();
