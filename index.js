@@ -1,7 +1,5 @@
 import path from 'path';
-import { scrap_NIJZ_powerBI } from './src/index.js';
-import readCSV from './src/readCSV.js';
-import writeCSV from './src/writeCSV.js';
+import { scrap_NIJZ_powerBI, readCSV, writeCSV } from './src/index.js';
 
 const dir = process.cwd();
 const now = Date.now();
