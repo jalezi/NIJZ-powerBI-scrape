@@ -22,4 +22,4 @@ const readCSV = (filename = filePath) => {
       }
     });
 };
-export default readCSV();
+export default readCSV;
