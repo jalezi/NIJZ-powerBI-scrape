@@ -9,21 +9,30 @@ const getTimestamp = titles => {
     .split(' ')
     .map(item => item.replace('.', ''));
 
-  const time = date[3].split(':');
-  const dateForUTC = [date[2], date[1] - 1, date[0], ...time];
-  return Date.UTC(...dateForUTC);
+  let [day, month, year, time] = date;
+  time = time.split(':');
+  const dateForUTC = [year, month - 1, day, ...time];
+  const timestamp = Date.UTC(...dateForUTC);
+  const dateString = new Date(timestamp).toISOString().slice(0, 10);
+
+  return { timestamp, date: dateString };
 };
 
-const getVacs = titles =>
-  titles
+const getVacs = titles => {
+  const data = titles
     .filter(node => node.length === 2 && node[1].endsWith('odmerek'))
     .reduce((acc, [value, key]) => {
       key.includes('1') &&
-        (acc.administered = { toDate: +value.replace('.', '') });
+        (acc['vaccination.administered.todate'] = value.replace('.', ''));
       key.includes('2') &&
-        (acc.administered2nd = { toDate: +value.replace('.', '') });
+        (acc['vaccination.administered2nd.todate'] = value.replace('.', ''));
       return acc;
     }, {});
+  data['vaccination.used.todate'] =
+    +data['vaccination.administered.todate'] +
+    +data['vaccination.administered2nd.todate'];
+  return data;
+};
 
 const scrap_NIJZ_powerBI = async () => {
   const browser = await puppeteer.launch();
@@ -45,7 +54,11 @@ const scrap_NIJZ_powerBI = async () => {
   // console.log(allVisualModern.length);
 
   await browser.close();
-  return { timestamp, created: Date.now(), vaccination: vacs };
+  return {
+    timestamp,
+    created: Date.now(),
+    vaccination: { date: timestamp.date, ...vacs },
+  };
 };
 
 export default scrap_NIJZ_powerBI;
