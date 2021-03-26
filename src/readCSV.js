@@ -4,7 +4,8 @@ import { createReadStream } from 'fs';
 
 const dir = process.cwd();
 const filePath = path.resolve(dir, 'csv/vaccination-administered.csv');
-export default (filename = filePath) => {
+
+const readCSV = (filename = filePath) => {
   const results = [];
 
   return () =>
@@ -19,5 +20,6 @@ export default (filename = filePath) => {
       } catch (error) {
         reject(error);
       }
-    })();
+    });
 };
+export default readCSV();
