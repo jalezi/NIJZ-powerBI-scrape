@@ -5,9 +5,10 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 const dir = process.cwd();
 const now = Date.now();
+const today = new Date().toISOString().slice(0, 10);
 const backupPath = path.resolve(
   dir,
-  `csv/backup/vaccination-administered-backup-${now}.csv`
+  `csv/backup/vaccination-administered ${today}-${now}.csv`
 );
 
 const testPath = path.resolve(
