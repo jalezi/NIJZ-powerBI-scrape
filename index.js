@@ -1,8 +1,6 @@
 import path from 'path';
 import { scrap_NIJZ_powerBI, readCSV, writeCSV, GetDose } from './src/index.js';
 
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
-
 const dir = process.cwd();
 const now = Date.now();
 const today = new Date().toISOString().slice(0, 10);
