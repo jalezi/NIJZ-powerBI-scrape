@@ -18,8 +18,10 @@ const testPath = path.resolve(
   `csv/vaccination-administered ${yesterday}.csv`
 );
 
-const parseCSV =
-  process.env.NODE_ENV === 'development' ? readCSV(testPath) : readCSV();
+const isDev = process.env.NODE_ENV === 'development';
+isDev && console.log(`running in ${process.env.NODE_ENV} mode!`);
+
+const parseCSV = isDev ? readCSV(testPath) : readCSV();
 
 const start = async () => {
   const dose1 = await GetDose.dose1();
@@ -49,8 +51,8 @@ const start = async () => {
     };
 
     const newData = [...oldData, newObj];
-    writeCSV(newData);
-    writeCSV(newData, backupPath);
+
+    isDev ? writeCSV(newData, backupPath) : writeCSV(newData);
   } else {
     console.log('No change!\n', { lastOld, vaccination });
   }
