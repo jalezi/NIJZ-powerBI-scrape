@@ -4,11 +4,10 @@ import csv_writer from 'csv-writer';
 const { createObjectCsvWriter: createCsvWriter } = csv_writer;
 
 const dir = process.cwd();
-const filePath = path.resolve(dir, 'csv/vaccination-administered.csv');
 
-export default (records, filename = filePath) => {
-  const csvWriter = createCsvWriter({
-    path: filename,
+const csvDict = {
+  administered: {
+    path: path.resolve(dir, 'csv/vaccination-administered.csv'),
     header: [
       { id: 'date', title: 'date' },
       { id: 'vaccination.administered', title: 'vaccination.administered' },
@@ -26,11 +25,41 @@ export default (records, filename = filePath) => {
       },
       { id: 'vaccination.used.todate', title: 'vaccination.used.todate' },
     ],
+  },
+  delivered: {
+    path: path.resolve(dir, 'csv/vaccination-delivered.csv'),
+    header: [
+      {
+        id: 'date',
+        title: 'date',
+      },
+      {
+        id: 'vaccination.pfizer.delivered',
+        title: 'vaccination.pfizer.delivered',
+      },
+      {
+        id: 'vaccination.moderna.delivered',
+        title: 'vaccination.moderna.delivered',
+      },
+      { id: 'vaccination.az.delivered', title: 'vaccination.az.delivered' },
+    ],
+  },
+};
+
+export default (records, type, path) => {
+  const csvWriter = createCsvWriter({
+    path: path || csvDict[type].path,
+    header: csvDict[type].header,
   });
 
-  csvWriter
-    .writeRecords(records) // returns a promise
-    .then(() => {
-      console.log('...Done');
-    });
+  try {
+    csvWriter
+      .writeRecords(records) // returns a promise
+      .then(() => {
+        console.log(`Success: ${type}: path: ${path || csvDict[type].path}`);
+      });
+  } catch (error) {
+    console.log(`Error: ${type}: path: ${path || csvDict[type].path}`);
+    console.log(error);
+  }
 };

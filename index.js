@@ -1,5 +1,5 @@
 import path from 'path';
-import { scrap_NIJZ_powerBI, readCSV, writeCSV, GetDose } from './src/index.js';
+import { scrap_NIJZ_powerBI, readCSV, writeCSV } from './src/index.js';
 
 const dir = process.cwd();
 const now = Date.now();
@@ -8,12 +8,12 @@ const yesterday = new Date(now - 24 * 60 * 60 * 1000)
   .toISOString()
   .slice(0, 10);
 
-const backupPath = path.resolve(
+const administeredBckPath = path.resolve(
   dir,
   `csv/backup/vaccination-administered ${today}-${now}.csv`
 );
 
-const testPath = path.resolve(
+const devAdministeredPath = path.resolve(
   dir,
   `csv/vaccination-administered ${yesterday}.csv`
 );
@@ -21,41 +21,44 @@ const testPath = path.resolve(
 const isDev = process.env.NODE_ENV === 'development';
 isDev && console.log(`running in ${process.env.NODE_ENV} mode!`);
 
-const parseCSV = isDev ? readCSV(testPath) : readCSV();
+const parseAdministered = isDev ? readCSV(devAdministeredPath) : readCSV();
 
 const start = async () => {
-  const dose1 = await GetDose.dose1();
-  const dose2 = await GetDose.dose2();
-
-  // todo fetch date from power BI
-  console.log(dose1, dose2);
-
   const data = await scrap_NIJZ_powerBI();
-  const { vaccination } = data;
-  const oldData = await parseCSV();
+  const { administered, delivered } = data;
+
+  // administered
+  const oldData = await parseAdministered();
   const lastOld = oldData.slice(-1).pop();
 
   const { date: lastDate } = lastOld;
-  const { date: newDate } = vaccination;
+  const { date: newDate } = administered;
   const dayDiff = new Date(newDate) - new Date(lastDate);
 
   if (dayDiff > 0) {
     const newObj = {
-      ...vaccination,
+      ...administered,
       ['vaccination.administered']:
-        vaccination['vaccination.administered.todate'] -
+        administered['vaccination.administered.todate'] -
         lastOld['vaccination.administered.todate'],
       ['vaccination.administered2nd']:
-        vaccination['vaccination.administered2nd.todate'] -
+        administered['vaccination.administered2nd.todate'] -
         lastOld['vaccination.administered2nd.todate'],
     };
-
     const newData = [...oldData, newObj];
 
-    isDev ? writeCSV(newData, backupPath) : writeCSV(newData);
+    isDev
+      ? writeCSV(newData, 'administered', administeredBckPath)
+      : writeCSV(newData, 'administered');
   } else {
-    console.log('No change!\n', { lastOld, vaccination });
+    console.log('No change for administered\n', {
+      lastOld,
+      vaccination: administered,
+    });
   }
+
+  //delivered
+  writeCSV(delivered, 'delivered');
 };
 
 start();
