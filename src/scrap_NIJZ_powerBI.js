@@ -1,4 +1,21 @@
+import path from 'path';
 import puppeteer from 'puppeteer';
+import readCSV from './readCSV.js';
+
+const dir = process.cwd();
+const now = Date.now();
+const today = new Date().toISOString().slice(0, 10);
+const yesterday = new Date(now - 24 * 60 * 60 * 1000)
+  .toISOString()
+  .slice(0, 10);
+
+const devAdministeredPath = path.resolve(
+  dir,
+  `csv/vaccination-administered ${yesterday}.csv`
+);
+
+const isDev = process.env.NODE_ENV === 'development';
+const parseAdministered = isDev ? readCSV(devAdministeredPath) : readCSV();
 
 const extractTimestamp = titles => {
   const date = titles
@@ -47,8 +64,29 @@ const getTitles = async page => {
 const getAdministered = async page => {
   const titlesResolved = await getTitles(page);
   const timestamp = extractTimestamp(titlesResolved);
-  const vacs = extractAdministered(titlesResolved);
-  return { date: timestamp.date, ...vacs };
+  const administered = extractAdministered(titlesResolved);
+
+  const oldData = await parseAdministered();
+  const lastOld = oldData.slice(-1).pop();
+  const { date: lastDate } = lastOld;
+  const { date: newDate } = timestamp;
+  const dayDiff = new Date(newDate) - new Date(lastDate);
+
+  if (dayDiff > 0) {
+    const newObj = {
+      date: timestamp.date,
+      ...administered,
+      ['vaccination.administered']:
+        administered['vaccination.administered.todate'] -
+        lastOld['vaccination.administered.todate'],
+      ['vaccination.administered2nd']:
+        administered['vaccination.administered2nd.todate'] -
+        lastOld['vaccination.administered2nd.todate'],
+    };
+    return [...oldData, newObj];
+  }
+
+  return null;
 };
 
 const getTimestamp = async page => {
