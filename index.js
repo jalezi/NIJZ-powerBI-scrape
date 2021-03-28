@@ -1,5 +1,5 @@
 import path from 'path';
-import { scrap_NIJZ_powerBI, readCSV, writeCSV } from './src/index.js';
+import { scrape_NIJZ_powerBI, readCSV, writeCSV } from './src/index.js';
 
 const dir = process.cwd();
 const now = Date.now();
@@ -14,7 +14,7 @@ const isDev = process.env.NODE_ENV === 'development';
 isDev && console.log(`running in ${process.env.NODE_ENV} mode!`);
 
 const start = async () => {
-  const data = await scrap_NIJZ_powerBI();
+  const data = await scrape_NIJZ_powerBI();
   const { administered, delivered } = data;
 
   if (administered !== null) {
