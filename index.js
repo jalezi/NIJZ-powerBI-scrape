@@ -15,7 +15,10 @@ isDev && console.log(`running in ${process.env.NODE_ENV} mode!`);
 
 const start = async () => {
   const data = await scrape_NIJZ_powerBI();
-  const { administered, delivered } = data;
+  const { timestamp, created, administered, delivered } = data;
+
+  console.log(`NIJZ date: ${new Date(timestamp.timestamp)}`);
+  console.log(`Scrape date: ${new Date(created)}`);
 
   administered !== null && isDev
     ? writeCSV(administered, 'administered', administeredBckPath)
