@@ -14,8 +14,13 @@ const devAdministeredPath = path.resolve(
   `csv/vaccination-administered ${yesterday}.csv`
 );
 
+const devDeliveredPath = path.resolve(dir, `csv/vaccination-delivered-old.csv`);
+
 const isDev = process.env.NODE_ENV === 'development';
 const parseAdministered = isDev ? readCSV(devAdministeredPath) : readCSV();
+const parsedDelivered = isDev
+  ? readCSV(devDeliveredPath)
+  : readCSV(path.resolve(dir, `csv/vaccination-delivered.csv`));
 
 const extractTimestamp = titles => {
   const date = titles
@@ -96,6 +101,8 @@ const getTimestamp = async page => {
 };
 
 const getDelivered = async page => {
+  const oldData = await parsedDelivered();
+
   const scrollDown = await page.$(
     'div.tableEx > div:nth-child(4) > div:nth-child(2)'
   );
@@ -164,7 +171,7 @@ const getDelivered = async page => {
     ['Astra Zeneca']: az,
   };
 
-  return reducedData.dates.map((item, index) => {
+  const scrapedData = reducedData.dates.map((item, index) => {
     const [day, month, year] = item.split('.');
     const date = new Date(Date.UTC(year, month - 1, day))
       .toISOString()
@@ -174,6 +181,12 @@ const getDelivered = async page => {
     const obj = { [dict[company]]: number };
     return { date, [pfizer]: '', [moderna]: '', [az]: '', ...obj };
   });
+
+  if (scrapedData.length > oldData.length) {
+    return scrapedData;
+  }
+
+  return null;
 };
 
 const scrap_NIJZ_powerBI = async () => {

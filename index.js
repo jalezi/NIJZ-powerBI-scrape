@@ -22,7 +22,8 @@ const start = async () => {
     : administered !== null && writeCSV(administered, 'administered');
   administered ?? console.log(`No new administered data for ${today}!`);
 
-  writeCSV(delivered, 'delivered');
+  delivered !== null && writeCSV(delivered, 'delivered');
+  delivered ?? console.log(`No new delivered data for ${today}!`);
 };
 
 start();
