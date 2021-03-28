@@ -17,11 +17,10 @@ const start = async () => {
   const data = await scrape_NIJZ_powerBI();
   const { administered, delivered } = data;
 
-  if (administered !== null) {
-    isDev
-      ? writeCSV(administered, 'administered', administeredBckPath)
-      : writeCSV(administered, 'administered');
-  }
+  administered !== null && isDev
+    ? writeCSV(administered, 'administered', administeredBckPath)
+    : administered !== null && writeCSV(administered, 'administered');
+  administered ?? console.log(`No new administered data for ${today}!`);
 
   writeCSV(delivered, 'delivered');
 };
