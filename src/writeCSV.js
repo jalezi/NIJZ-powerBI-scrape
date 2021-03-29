@@ -72,8 +72,8 @@ const csvDict = {
         title: 'vaccination.used.todate',
       },
       {
-        id: 'vaccination.delivered',
-        title: 'vaccination.delivered',
+        id: 'vaccination.delivered.todate',
+        title: 'vaccination.delivered.todate',
       },
       {
         id: 'vaccination.pfizer.delivered',
