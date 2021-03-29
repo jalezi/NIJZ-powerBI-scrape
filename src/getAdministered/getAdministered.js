@@ -7,13 +7,16 @@ const yesterday = new Date(now - 24 * 60 * 60 * 1000)
   .toISOString()
   .slice(0, 10);
 
+const administeredPath = path.resolve(dir, `csv/vaccination-administered.csv`);
 const devAdministeredPath = path.resolve(
   dir,
   `csv/vaccination-administered ${yesterday}.csv`
 );
 
 const isDev = process.env.NODE_ENV === 'development';
-const parseAdministered = isDev ? readCSV(devAdministeredPath) : readCSV();
+const parseAdministered = isDev
+  ? readCSV(devAdministeredPath)
+  : readCSV(administeredPath);
 
 const extractTimestamp = titles => {
   const date = titles
