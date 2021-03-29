@@ -8,7 +8,7 @@ const devDeliveredPath = path.resolve(dir, `csv/vaccination-delivered-old.csv`);
 
 const parsedDelivered = isDev
   ? readCSV(devDeliveredPath)
-  : readCSV(path.resolve(deliveredPath));
+  : readCSV(deliveredPath);
 
 const getOldDelivered = async () => {
   const oldData = await parsedDelivered();
