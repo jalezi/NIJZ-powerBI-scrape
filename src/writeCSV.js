@@ -44,6 +44,63 @@ const csvDict = {
       { id: 'vaccination.az.delivered', title: 'vaccination.az.delivered' },
     ],
   },
+  vaccination: {
+    path: path.resolve(dir, 'csv/vaccination-delivered.csv'),
+    header: [
+      {
+        id: 'date',
+        title: 'date',
+      },
+      {
+        id: 'vaccination.administered',
+        title: 'vaccination.administered',
+      },
+      {
+        id: 'vaccination.administered.todate',
+        title: 'vaccination.administered.todate',
+      },
+      {
+        id: 'vaccination.administered2nd',
+        title: 'vaccination.administered2nd',
+      },
+      {
+        id: 'vaccination.administered2nd.todate',
+        title: 'vaccination.administered2nd.todate',
+      },
+      {
+        id: 'vaccination.used.todate',
+        title: 'vaccination.used.todate',
+      },
+      {
+        id: 'vaccination.delivered',
+        title: 'vaccination.delivered',
+      },
+      {
+        id: 'vaccination.pfizer.delivered',
+        title: 'vaccination.pfizer.delivered',
+      },
+      {
+        id: 'vaccination.pfizer.delivered.todate',
+        title: 'vaccination.pfizer.delivered.todate',
+      },
+      {
+        id: 'vaccination.moderna.delivered',
+        title: 'vaccination.moderna.delivered',
+      },
+      {
+        id: 'vaccination.moderna.delivered.todate',
+        title: 'vaccination.moderna.delivered.todate',
+      },
+      {
+        id: 'vaccination.az.delivered',
+        title: 'vaccination.az.delivered',
+      },
+      {
+        id: 'vaccination.az.delivered.todate',
+        title: 'vaccination.az.delivered.todate',
+      },
+    ],
+  },
 };
 
 export default (records, type, path) => {
