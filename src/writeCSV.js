@@ -45,7 +45,7 @@ const csvDict = {
     ],
   },
   vaccination: {
-    path: path.resolve(dir, 'csv/vaccination-delivered.csv'),
+    path: path.resolve(dir, 'csv/vaccination.csv'),
     header: [
       {
         id: 'date',
