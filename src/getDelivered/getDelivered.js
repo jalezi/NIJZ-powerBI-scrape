@@ -61,6 +61,7 @@ const separateCellsByColumns = ({
   return { dates, companies, numbers };
 };
 
+// you have to be on the second page of NIJZ PowerBI
 const scrapeDelivered = async (page, oldDataLength, columnsNum) => {
   const scrollDown = await page.$(
     'div.tableEx > div:nth-child(4) > div:nth-child(2)'
