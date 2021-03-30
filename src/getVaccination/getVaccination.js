@@ -37,10 +37,34 @@ export default async (administered, delivered) => {
     })
     .filter(item => item !== null)
     .map(item => {
-      // ? what if 2 records with same date
-      const deliveredOnDate = delivered.find(
-        itemDelivered => itemDelivered.date === item.date
-      );
+      const deliveredOnDate = delivered
+        .filter(itemDelivered => itemDelivered.date === item.date)
+        .reduce(
+          (acc, item) => {
+            const {
+              date,
+              ['vaccination.pfizer.delivered']: pfizer,
+              ['vaccination.moderna.delivered']: moderna,
+              ['vaccination.az.delivered']: az,
+            } = item;
+            acc = {
+              date,
+              ['vaccination.pfizer.delivered']:
+                pfizer || acc['vaccination.pfizer.delivered'],
+              ['vaccination.moderna.delivered']:
+                moderna || acc['vaccination.moderna.delivered'],
+              ['vaccination.az.delivered']:
+                az || acc['vaccination.az.delivered'],
+            };
+            return acc;
+          },
+          {
+            date: '',
+            ['vaccination.pfizer.delivered']: '',
+            ['vaccination.moderna.delivered']: '',
+            ['vaccination.az.delivered']: '',
+          }
+        );
       return {
         ...item,
         ['vaccination.delivered.todate']: null,
