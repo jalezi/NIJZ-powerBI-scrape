@@ -1,7 +1,7 @@
 import path from 'path';
 import readCSV from '../readCSV.js';
 
-const COMPANIES_NUM = 3;
+const COLUMNS_NUM = 3;
 const MAX_CELLS_NUM = 20;
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -33,15 +33,15 @@ const getOldDelivered = async () => {
 const separateCellsByColumns = ({
   cells,
   newDataLength,
-  COMPANIES_NUM,
-  MAX_CELLS_NUM,
+  columnsNum,
+  maxCellsNum,
 }) => {
   let dates = [];
   let companies = [];
   let numbers = [];
-  const dataLengthRatio = Math.floor(newDataLength / MAX_CELLS_NUM);
+  const dataLengthRatio = Math.floor(newDataLength / maxCellsNum);
   let index = 0;
-  let range = dataLengthRatio >= 1 ? MAX_CELLS_NUM : newDataLength;
+  let range = dataLengthRatio >= 1 ? maxCellsNum : newDataLength;
   while (dates.length < newDataLength) {
     dates = [...dates, ...cells.slice(index, index + range)];
     companies = [
@@ -52,22 +52,22 @@ const separateCellsByColumns = ({
       ...numbers,
       ...cells.slice(index + 2 * range, index + 2 * range + range),
     ];
-    index += COMPANIES_NUM * range;
+    index += columnsNum * range;
     range =
       cells.length - index >= 60
-        ? MAX_CELLS_NUM
-        : (cells.length - index) / COMPANIES_NUM;
+        ? maxCellsNum
+        : (cells.length - index) / columnsNum;
   }
   return { dates, companies, numbers };
 };
 
-const scrapeDelivered = async (page, oldDataLength, COMPANIES_NUM) => {
+const scrapeDelivered = async (page, oldDataLength, columnsNum) => {
   const scrollDown = await page.$(
     'div.tableEx > div:nth-child(4) > div:nth-child(2)'
   );
 
   let cells = [];
-  let newDataLength = cells.length / COMPANIES_NUM;
+  let newDataLength = cells.length / columnsNum;
   let cont = true;
   let totalVacs = 0;
 
@@ -90,12 +90,12 @@ const scrapeDelivered = async (page, oldDataLength, COMPANIES_NUM) => {
       .split('\n');
     totalVacs = +allCells.slice(-1).pop().replace('.', '');
     cells = allCells.slice(4, allCells.length - 3);
-    newDataLength = cells.length / COMPANIES_NUM;
+    newDataLength = cells.length / columnsNum;
     const { numbers } = separateCellsByColumns({
       cells,
       newDataLength,
-      COMPANIES_NUM,
-      MAX_CELLS_NUM,
+      columnsNum: COLUMNS_NUM,
+      maxCellsNum: MAX_CELLS_NUM,
     });
     const sum = calculateSum(numbers);
     cont = sum !== totalVacs;
@@ -132,13 +132,11 @@ const prepareDelivered = ({ dates, companies, numbers }) => {
 };
 
 export default async page => {
-  const COMPANIES_NUM = 3;
-  const MAX_CELLS_NUM = 20;
   const { oldDataLength, totalVacOld } = await getOldDelivered();
   const { cells, newDataLength, totalVacs, noNewData } = await scrapeDelivered(
     page,
     oldDataLength,
-    COMPANIES_NUM
+    COLUMNS_NUM
   );
 
   if (noNewData) {
@@ -148,8 +146,8 @@ export default async page => {
   const { dates, companies, numbers } = separateCellsByColumns({
     cells,
     newDataLength,
-    COMPANIES_NUM,
-    MAX_CELLS_NUM,
+    columnsNum: COLUMNS_NUM,
+    maxCellsNum: MAX_CELLS_NUM,
   });
 
   const total = numbers.reduce((acc, item) => {
