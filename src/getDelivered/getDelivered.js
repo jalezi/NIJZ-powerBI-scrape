@@ -1,5 +1,9 @@
 import path from 'path';
 import readCSV from '../readCSV.js';
+
+const COMPANIES_NUM = 3;
+const MAX_CELLS_NUM = 20;
+
 const isDev = process.env.NODE_ENV === 'development';
 
 const dir = process.cwd();
@@ -26,41 +30,6 @@ const getOldDelivered = async () => {
   return { oldDataLength, totalVacOld };
 };
 
-const scrapeDelivered = async (page, oldDataLength, COMPANIES_NUM) => {
-  const scrollDown = await page.$(
-    'div.tableEx > div:nth-child(4) > div:nth-child(2)'
-  );
-
-  let cells = [];
-  let newDataLength = cells.length / COMPANIES_NUM;
-  let cont = true;
-  let totalVacs = 0;
-
-  while (newDataLength <= oldDataLength && cont) {
-    const vcBodies = await page.$$('.vcBody');
-    const textResolved = await Promise.all(
-      vcBodies.map(async item => {
-        const text = await item.$eval('div', item => item.innerText);
-        return text.startsWith('Datum\n') && text;
-      })
-    );
-    const allCells = textResolved
-      .filter(item => !!item)
-      .pop()
-      .split('\n');
-    totalVacs = +allCells.slice(-1).pop().replace('.', '');
-    cells = allCells.slice(4, allCells.length - 3);
-    newDataLength = cells.length / COMPANIES_NUM;
-    cont = newDataLength !== oldDataLength;
-    await scrollDown.click();
-  }
-
-  if (newDataLength === oldDataLength) {
-    return { noNewData: true };
-  }
-  return { cells, newDataLength, totalVacs };
-};
-
 const separateCellsByColumns = ({
   cells,
   newDataLength,
@@ -70,7 +39,6 @@ const separateCellsByColumns = ({
   let dates = [];
   let companies = [];
   let numbers = [];
-
   const dataLengthRatio = Math.floor(newDataLength / MAX_CELLS_NUM);
   let index = 0;
   let range = dataLengthRatio >= 1 ? MAX_CELLS_NUM : newDataLength;
@@ -91,6 +59,53 @@ const separateCellsByColumns = ({
         : (cells.length - index) / COMPANIES_NUM;
   }
   return { dates, companies, numbers };
+};
+
+const scrapeDelivered = async (page, oldDataLength, COMPANIES_NUM) => {
+  const scrollDown = await page.$(
+    'div.tableEx > div:nth-child(4) > div:nth-child(2)'
+  );
+
+  let cells = [];
+  let newDataLength = cells.length / COMPANIES_NUM;
+  let cont = true;
+  let totalVacs = 0;
+
+  const calculateSum = numbers =>
+    numbers
+      .map(item => +item.replace('.', '')) // string.reaplaceAll -> node v15.0
+      .reduce((acc, num) => acc + num, 0);
+
+  while (cont) {
+    const vcBodies = await page.$$('.vcBody');
+    const textResolved = await Promise.all(
+      vcBodies.map(async item => {
+        const text = await item.$eval('div', item => item.innerText);
+        return text.startsWith('Datum\n') && text;
+      })
+    );
+    const allCells = textResolved
+      .filter(item => !!item)
+      .pop()
+      .split('\n');
+    totalVacs = +allCells.slice(-1).pop().replace('.', '');
+    cells = allCells.slice(4, allCells.length - 3);
+    newDataLength = cells.length / COMPANIES_NUM;
+    const { numbers } = separateCellsByColumns({
+      cells,
+      newDataLength,
+      COMPANIES_NUM,
+      MAX_CELLS_NUM,
+    });
+    const sum = calculateSum(numbers);
+    cont = sum !== totalVacs;
+    await scrollDown.click();
+  }
+
+  if (newDataLength === oldDataLength) {
+    return { noNewData: true };
+  }
+  return { cells, newDataLength, totalVacs };
 };
 
 const prepareDelivered = ({ dates, companies, numbers }) => {
