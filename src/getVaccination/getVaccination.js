@@ -19,10 +19,6 @@ const parsedVaccination = isDev
   : readCSV(vaccinationPath);
 
 export default async (administered, delivered) => {
-  if (!administered || !delivered) {
-    return null;
-  }
-
   const oldVaccination = await parsedVaccination();
 
   const onlyMissingAdministered = administered
@@ -36,17 +32,18 @@ export default async (administered, delivered) => {
       return null;
     })
     .filter(item => item !== null)
-    .map(item => {
+    .map(itemAdministered => {
       const deliveredOnDate = delivered
-        .filter(itemDelivered => itemDelivered.date === item.date)
+        .filter(itemDelivered => itemDelivered.date === itemAdministered.date)
         .reduce(
-          (acc, item) => {
+          (acc, itemDelivered) => {
             const {
               date,
               ['vaccination.pfizer.delivered']: pfizer,
               ['vaccination.moderna.delivered']: moderna,
               ['vaccination.az.delivered']: az,
-            } = item;
+            } = itemDelivered;
+            console.log({ date });
             acc = {
               date,
               ['vaccination.pfizer.delivered']:
@@ -66,7 +63,6 @@ export default async (administered, delivered) => {
           }
         );
       return {
-        ...item,
         ['vaccination.delivered.todate']: null,
         ['vaccination.pfizer.delivered']: null,
         ['vaccination.pfizer.delivered.todate']: null,
@@ -75,6 +71,7 @@ export default async (administered, delivered) => {
         ['vaccination.az.delivered']: null,
         ['vaccination.az.delivered.todate']: null,
         ...(deliveredOnDate ? deliveredOnDate : {}),
+        ...itemAdministered,
       };
     });
 

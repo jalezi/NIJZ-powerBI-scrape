@@ -5,14 +5,17 @@ const dir = process.cwd();
 const now = Date.now();
 const today = new Date().toISOString().slice(0, 10);
 
-const administeredBckPath = path.resolve(
+const vaccinationDevPath = path.resolve(
+  dir,
+  `csv/backup/vaccination ${today}-${now}.csv`
+);
+const administeredDevPath = path.resolve(
   dir,
   `csv/backup/vaccination-administered ${today}-${now}.csv`
 );
-
-const vaccinationBckPath = path.resolve(
+const deliveredDevPath = path.resolve(
   dir,
-  `csv/backup/vaccination ${today}-${now}.csv`
+  `csv/backup/vaccination-delivered ${today}-${now}.csv`
 );
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -21,24 +24,25 @@ isDev && console.log(`running in ${process.env.NODE_ENV} mode!`);
 const start = async () => {
   try {
     const data = await scrape_NIJZ_powerBI();
-    const { timestamp, created, administered, delivered, vaccination } = data;
+    const { timestamp, created, vaccination } = data;
 
     console.log(`NIJZ date: ${new Date(timestamp.timestamp)}`);
     console.log(`Scrape date: ${new Date(created)}`);
 
-    administered !== null &&
-      (isDev
-        ? writeCSV(administered, 'administered', administeredBckPath)
-        : writeCSV(administered, 'administered'));
-    administered ?? console.log(`No new administered data for ${today}!`);
+    if (!vaccination) {
+      throw Error('No data! Something went wrong!');
+    }
 
-    delivered !== null && writeCSV(delivered, 'delivered');
-    delivered ?? console.log(`No new delivered data for ${today}!`);
-    vaccination !== null &&
-      (isDev
-        ? writeCSV(vaccination, 'vaccination', vaccinationBckPath)
-        : writeCSV(vaccination, 'vaccination'));
-    vaccination ?? console.log(`No new vaccination data for ${today}!`);
+    if (isDev) {
+      writeCSV(vaccination, 'vaccination', vaccinationDevPath);
+      writeCSV(vaccination, 'administered', administeredDevPath);
+      writeCSV(vaccination, 'delivered', deliveredDevPath);
+      return;
+    }
+
+    writeCSV(vaccination, 'vaccination');
+    writeCSV(vaccination, 'administered');
+    writeCSV(vaccination, 'delivered');
   } catch (error) {
     console.log(error);
   }

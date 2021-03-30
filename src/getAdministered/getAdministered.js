@@ -93,5 +93,5 @@ export default async page => {
     return [...oldData, newObj];
   }
 
-  return null;
+  return [...oldData];
 };

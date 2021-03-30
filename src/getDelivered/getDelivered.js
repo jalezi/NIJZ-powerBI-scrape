@@ -1,41 +1,8 @@
-import path from 'path';
-import readCSV from '../readCSV.js';
-
 const COLUMNS_NUM = 3;
 const MAX_CELLS_NUM = 20;
 
-const isDev = process.env.NODE_ENV === 'development';
-
-const dir = process.cwd();
-const deliveredPath = path.resolve(dir, `csv/vaccination-delivered.csv`);
-const devDeliveredPath = path.resolve(dir, `csv/vaccination-delivered-old.csv`);
-
-const parsedDelivered = isDev
-  ? readCSV(devDeliveredPath)
-  : readCSV(deliveredPath);
-
-const getOldDelivered = async () => {
-  const oldData = await parsedDelivered();
-  const totalVacOld = oldData.reduce((acc, item) => {
-    const {
-      ['vaccination.pfizer.delivered']: pfizer,
-      'vaccination.moderna.delivered': moderna,
-      'vaccination.az.delivered': az,
-    } = item;
-    const num = pfizer || moderna || az;
-    acc = acc + +num;
-    return acc;
-  }, 0);
-  const oldDataLength = oldData.length;
-  return { oldDataLength, totalVacOld };
-};
-
-const separateCellsByColumns = ({
-  cells,
-  dataLength,
-  columnsNum,
-  maxCellsNum,
-}) => {
+const separateCellsByColumns = ({ cells, columnsNum, maxCellsNum }) => {
+  const dataLength = cells.length / columnsNum;
   let dates = [];
   let companies = [];
   let numbers = [];
@@ -71,13 +38,12 @@ const toNumber = string => {
 };
 
 // you have to be on the second page of NIJZ PowerBI
-const scrapeDelivered = async (page, oldDataLength, columnsNum) => {
+const scrapeDelivered = async page => {
   const scrollDown = await page.$(
     'div.tableEx > div:nth-child(4) > div:nth-child(2)'
   );
 
   let cells = [];
-  let newDataLength = cells.length / columnsNum;
   let cont = true;
   let totalVacs = 0;
 
@@ -97,12 +63,9 @@ const scrapeDelivered = async (page, oldDataLength, columnsNum) => {
       .pop()
       .split('\n');
     totalVacs = toNumber(allCells.slice(-1).pop());
-    console.log(typeof totalVacs, totalVacs);
     cells = allCells.slice(4, allCells.length - 3);
-    newDataLength = cells.length / columnsNum;
     const { numbers } = separateCellsByColumns({
       cells,
-      dataLength: newDataLength,
       columnsNum: COLUMNS_NUM,
       maxCellsNum: MAX_CELLS_NUM,
     });
@@ -111,10 +74,7 @@ const scrapeDelivered = async (page, oldDataLength, columnsNum) => {
     await scrollDown.click();
   }
 
-  if (newDataLength === oldDataLength) {
-    return { noNewData: true };
-  }
-  return { cells, totalVacs };
+  return cells;
 };
 
 const prepareDelivered = ({ dates, companies, numbers }) => {
@@ -141,37 +101,13 @@ const prepareDelivered = ({ dates, companies, numbers }) => {
 };
 
 export default async page => {
-  const { oldDataLength, totalVacOld } = await getOldDelivered();
-  const { cells, totalVacs, noNewData } = await scrapeDelivered(
-    page,
-    oldDataLength,
-    COLUMNS_NUM
-  );
-
-  if (noNewData) {
-    return null;
-  }
+  const cells = await scrapeDelivered(page);
 
   const { dates, companies, numbers } = separateCellsByColumns({
     cells,
-    dataLength: cells.length / COLUMNS_NUM,
     columnsNum: COLUMNS_NUM,
     maxCellsNum: MAX_CELLS_NUM,
   });
-
-  const total = numbers.reduce((acc, item) => {
-    const num = toNumber(item);
-    acc = acc + +num;
-    return acc;
-  }, 0);
-
-  const totalIsValid = total > totalVacOld && total === totalVacs;
-  totalIsValid && console.log(`Delivered total is valid, received: ${total}.`);
-
-  !totalVacOld &&
-    console.log(
-      `Delivered total is NOT valid, received: ${total}, expect: ${totalVacs}, greater than: ${totalVacOld}.`
-    );
 
   const data = prepareDelivered({ dates, companies, numbers });
   return data;
