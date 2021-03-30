@@ -32,17 +32,17 @@ const getOldDelivered = async () => {
 
 const separateCellsByColumns = ({
   cells,
-  newDataLength,
+  dataLength,
   columnsNum,
   maxCellsNum,
 }) => {
   let dates = [];
   let companies = [];
   let numbers = [];
-  const dataLengthRatio = Math.floor(newDataLength / maxCellsNum);
+  const dataLengthRatio = Math.floor(dataLength / maxCellsNum);
   let index = 0;
-  let range = dataLengthRatio >= 1 ? maxCellsNum : newDataLength;
-  while (dates.length < newDataLength) {
+  let range = dataLengthRatio >= 1 ? maxCellsNum : dataLength;
+  while (dates.length < dataLength) {
     dates = [...dates, ...cells.slice(index, index + range)];
     companies = [
       ...companies,
@@ -102,7 +102,7 @@ const scrapeDelivered = async (page, oldDataLength, columnsNum) => {
     newDataLength = cells.length / columnsNum;
     const { numbers } = separateCellsByColumns({
       cells,
-      newDataLength,
+      dataLength: newDataLength,
       columnsNum: COLUMNS_NUM,
       maxCellsNum: MAX_CELLS_NUM,
     });
@@ -114,7 +114,7 @@ const scrapeDelivered = async (page, oldDataLength, columnsNum) => {
   if (newDataLength === oldDataLength) {
     return { noNewData: true };
   }
-  return { cells, newDataLength, totalVacs };
+  return { cells, totalVacs };
 };
 
 const prepareDelivered = ({ dates, companies, numbers }) => {
@@ -142,7 +142,7 @@ const prepareDelivered = ({ dates, companies, numbers }) => {
 
 export default async page => {
   const { oldDataLength, totalVacOld } = await getOldDelivered();
-  const { cells, newDataLength, totalVacs, noNewData } = await scrapeDelivered(
+  const { cells, totalVacs, noNewData } = await scrapeDelivered(
     page,
     oldDataLength,
     COLUMNS_NUM
@@ -154,7 +154,7 @@ export default async page => {
 
   const { dates, companies, numbers } = separateCellsByColumns({
     cells,
-    newDataLength,
+    dataLength: cells.length / COLUMNS_NUM,
     columnsNum: COLUMNS_NUM,
     maxCellsNum: MAX_CELLS_NUM,
   });
