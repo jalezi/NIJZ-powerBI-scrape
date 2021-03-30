@@ -61,6 +61,15 @@ const separateCellsByColumns = ({
   return { dates, companies, numbers };
 };
 
+const toNumber = string => {
+  const newString = string.replace('.', ''); // string.reaplaceAll -> node v15.0
+  const index = newString.indexOf('.');
+  if (index === -1) {
+    return +newString;
+  }
+  return toNumber(newString);
+};
+
 // you have to be on the second page of NIJZ PowerBI
 const scrapeDelivered = async (page, oldDataLength, columnsNum) => {
   const scrollDown = await page.$(
@@ -73,9 +82,7 @@ const scrapeDelivered = async (page, oldDataLength, columnsNum) => {
   let totalVacs = 0;
 
   const calculateSum = numbers =>
-    numbers
-      .map(item => +item.replace('.', '')) // string.reaplaceAll -> node v15.0
-      .reduce((acc, num) => acc + num, 0);
+    numbers.map(item => toNumber(item)).reduce((acc, num) => acc + num, 0);
 
   while (cont) {
     const vcBodies = await page.$$('.vcBody');
@@ -89,7 +96,8 @@ const scrapeDelivered = async (page, oldDataLength, columnsNum) => {
       .filter(item => !!item)
       .pop()
       .split('\n');
-    totalVacs = +allCells.slice(-1).pop().replace('.', '');
+    totalVacs = toNumber(allCells.slice(-1).pop());
+    console.log(typeof totalVacs, totalVacs);
     cells = allCells.slice(4, allCells.length - 3);
     newDataLength = cells.length / columnsNum;
     const { numbers } = separateCellsByColumns({
@@ -126,7 +134,7 @@ const prepareDelivered = ({ dates, companies, numbers }) => {
       .toISOString()
       .slice(0, 10);
     const company = companies[index];
-    const number = numbers[index].replace('.', '');
+    const number = toNumber(numbers[index]);
     const obj = { [dict[company]]: number };
     return { date, [pfizer]: '', [moderna]: '', [az]: '', ...obj };
   });
@@ -152,7 +160,7 @@ export default async page => {
   });
 
   const total = numbers.reduce((acc, item) => {
-    const num = item.replace('.', '');
+    const num = toNumber(item);
     acc = acc + +num;
     return acc;
   }, 0);
