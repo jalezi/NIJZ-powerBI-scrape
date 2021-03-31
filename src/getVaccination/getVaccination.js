@@ -43,7 +43,6 @@ export default async (administered, delivered) => {
               ['vaccination.moderna.delivered']: moderna,
               ['vaccination.az.delivered']: az,
             } = itemDelivered;
-            console.log({ date });
             acc = {
               date,
               ['vaccination.pfizer.delivered']:
@@ -133,6 +132,7 @@ export default async (administered, delivered) => {
     );
   };
 
-  const newVaccination = populateNewVaccination(lastComplete, onlyNew);
+  const newVaccination =
+    onlyNew.length > 0 ? populateNewVaccination(lastComplete, onlyNew) : [];
   return [...oldVaccination, ...newVaccination];
 };

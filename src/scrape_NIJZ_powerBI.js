@@ -1,6 +1,7 @@
 import puppeteer from 'puppeteer';
 import getDelivered from './getDelivered/index.js';
-import getAdministered, { getTimestamp } from './getAdministered/index.js';
+import getTimestamp from './getTimestamp/index.js';
+import getAdministered from './getAdministered/index.js';
 import getVaccination from './getVaccination/index.js';
 
 export default async () => {
@@ -14,11 +15,7 @@ export default async () => {
   const administered = await getAdministered(page);
   const timestamp = await getTimestamp(page);
 
-  const nextPage = await page.$(
-    '#embedWrapperID > div.logoBarWrapper > logo-bar > div > div > div > logo-bar-navigation > span > a:nth-child(3) > i'
-  );
-
-  await nextPage.click();
+  await page.$eval('.pbi-glyph-chevronrightmedium', el => el.click());
   await page.waitForSelector('.bodyCells');
 
   const delivered = await getDelivered(page);

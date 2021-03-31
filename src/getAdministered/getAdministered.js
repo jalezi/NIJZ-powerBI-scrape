@@ -1,5 +1,6 @@
 import path from 'path';
 import readCSV from '../readCSV.js';
+import getTimestamp from '../getTimestamp/index.js';
 
 const dir = process.cwd();
 const now = Date.now();
@@ -17,24 +18,6 @@ const isDev = process.env.NODE_ENV === 'development';
 const parseAdministered = isDev
   ? readCSV(devAdministeredPath)
   : readCSV(administeredPath);
-
-const extractTimestamp = titles => {
-  const date = titles
-    .filter(node => {
-      const date = node.length === 1 && node[0].split(' ');
-      return date && date.length === 4;
-    })[0][0]
-    .split(' ')
-    .map(item => item.replace('.', ''));
-
-  let [day, month, year, time] = date;
-  time = time.split(':');
-  const dateForUTC = [year, month - 1, day, ...time];
-  const timestamp = Date.UTC(...dateForUTC);
-  const dateString = new Date(timestamp).toISOString().slice(0, 10);
-
-  return { timestamp, date: dateString };
-};
 
 const extractAdministered = titles => {
   const data = titles
@@ -62,26 +45,19 @@ const getTitles = async page => {
   return titlesResolved;
 };
 
-export const getTimestamp = async page => {
-  const titlesResolved = await getTitles(page);
-  const timestamp = extractTimestamp(titlesResolved);
-  return timestamp;
-};
-
 export default async page => {
   const titlesResolved = await getTitles(page);
-  const timestamp = extractTimestamp(titlesResolved);
   const administered = extractAdministered(titlesResolved);
 
   const oldData = await parseAdministered();
   const lastOld = oldData.slice(-1).pop();
   const { date: lastDate } = lastOld;
-  const { date: newDate } = timestamp;
+  const { date: newDate } = await getTimestamp(page);
   const dayDiff = new Date(newDate) - new Date(lastDate);
 
   if (dayDiff > 0) {
     const newObj = {
-      date: timestamp.date,
+      date: newDate,
       ...administered,
       ['vaccination.administered']:
         administered['vaccination.administered.todate'] -
