@@ -32,16 +32,16 @@ const start = async () => {
       throw Error('No data! Something went wrong!');
     }
 
-    if (isDev) {
-      writeCSV(vaccination, 'vaccination', DevPath.vaccination);
-      writeCSV(vaccination, 'administered', DevPath.administered);
-      writeCSV(delivered, 'delivered', DevPath.delivered);
-      return;
-    }
+    // if (isDev) {
+    //   writeCSV(vaccination, 'vaccination', DevPath.vaccination);
+    //   writeCSV(vaccination, 'administered', DevPath.administered);
+    //   writeCSV(delivered, 'delivered', DevPath.delivered);
+    //   return;
+    // }
 
-    writeCSV(vaccination, 'vaccination');
-    writeCSV(vaccination, 'administered');
-    writeCSV(delivered, 'delivered');
+    // writeCSV(vaccination, 'vaccination');
+    // writeCSV(vaccination, 'administered');
+    // writeCSV(delivered, 'delivered');
   } catch (error) {
     console.log(error);
   }
