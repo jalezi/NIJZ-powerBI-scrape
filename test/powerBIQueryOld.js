@@ -1,4 +1,4 @@
-const q_odmerek1 = {
+const q_odmerek2 = {
   Commands: [
     {
       SemanticQueryDataShapeCommand: {
@@ -116,7 +116,7 @@ const q_odmerek1 = {
   ],
 };
 
-const q_odmerek2 = {
+const q_odmerek1 = {
   Commands: [
     {
       SemanticQueryDataShapeCommand: {

@@ -138,8 +138,8 @@ const getPowerBIQuery = (not = false) => {
     ],
   };
 };
-export const q_odmerek1 = getPowerBIQuery(true);
-export const q_odmerek2 = getPowerBIQuery(false);
+export const q_odmerek1 = getPowerBIQuery(false);
+export const q_odmerek2 = getPowerBIQuery(true);
 
 const queryDose1 = buildQuery(q_odmerek1);
 const queryDose2 = buildQuery(q_odmerek2);
@@ -147,7 +147,9 @@ const queryDose2 = buildQuery(q_odmerek2);
 const getDose1 = createQuery(queryDose1);
 const getDose2 = createQuery(queryDose2);
 
-export default { dose1: getDose1, dose2: getDose2 };
+export default async () => {
+  return { dose1: await getDose1(), dose2: await getDose2() };
+};
 
 function buildQuery(commands) {
   return {
