@@ -83,9 +83,9 @@ const prepareDelivered = ({ dates, companies, numbers }) => {
   const az = 'vaccination.az.delivered';
 
   const dict = {
-    ['Pfizer-BioNTech']: pfizer,
-    ['Moderna']: moderna,
-    ['Astra Zeneca']: az,
+    'Pfizer-BioNTech': pfizer,
+    Moderna: moderna,
+    'Astra Zeneca': az,
   };
 
   return dates.map((item, index) => {

@@ -1,73 +1,105 @@
-import path from 'path';
-import readCSV from '../readCSV.js';
 import getTimestamp from '../getTimestamp/index.js';
 
-const dir = process.cwd();
-const now = Date.now();
-const yesterday = new Date(now - 24 * 60 * 60 * 1000)
-  .toISOString()
-  .slice(0, 10);
-
-const administeredPath = path.resolve(dir, `csv/vaccination-administered.csv`);
-const devAdministeredPath = path.resolve(
-  dir,
-  `csv/vaccination-administered ${yesterday}.csv`
-);
-
-const isDev = process.env.NODE_ENV === 'development';
-const parseAdministered = isDev
-  ? readCSV(devAdministeredPath)
-  : readCSV(administeredPath);
-
-const extractAdministered = titles => {
-  const data = titles
-    .filter(node => node.length === 2 && node[1].endsWith('odmerek'))
-    .reduce((acc, [value, key]) => {
-      key.includes('1') &&
-        (acc['vaccination.administered.todate'] = value.replace('.', ''));
-      key.includes('2') &&
-        (acc['vaccination.administered2nd.todate'] = value.replace('.', ''));
-      return acc;
-    }, {});
-  data['vaccination.used.todate'] =
-    +data['vaccination.administered.todate'] +
-    +data['vaccination.administered2nd.todate'];
-  return data;
+const START_TS = Date.UTC(2020, 11, 27);
+const START_DATE = new Date(START_TS).toISOString().slice(0, 10);
+const START = {
+  TS: START_TS,
+  DATE: START_DATE,
 };
 
-const getTitles = async page => {
-  const allSVG = await page.$$('svg');
-  const text = allSVG.map(
-    async svg =>
-      await svg.$$eval('title', nodes => nodes.map(node => node.innerHTML))
-  );
-  const titlesResolved = await Promise.all(text);
-  return titlesResolved;
+const toNumber = string => {
+  const newString = string.replace('.', '').replace(',', ''); // string.reaplaceAll -> node v15.0
+  const dot = newString.indexOf('.');
+  const comma = newString.indexOf(',');
+  if (dot === -1 && comma === -1) {
+    return +newString;
+  }
+  return toNumber(newString);
+};
+
+const getTimestamps = async page => {
+  const refreshed = await getTimestamp(page);
+  const today_ts = Date.now();
+  const today = {
+    ts: Date.now(),
+    date: new Date(today_ts).toISOString().slice(0, 10),
+  };
+
+  const days =
+    (new Date(refreshed.date) - START.TS) / (24 * 60 * 60 * 1000) + 1;
+
+  return { today, refreshed, START, days };
 };
 
 export default async page => {
-  const titlesResolved = await getTitles(page);
-  const administered = extractAdministered(titlesResolved);
+  const timestamps = await getTimestamps(page);
 
-  const oldData = await parseAdministered();
-  const lastOld = oldData.slice(-1).pop();
-  const { date: lastDate } = lastOld;
-  const { date: newDate } = await getTimestamp(page);
-  const dayDiff = new Date(newDate) - new Date(lastDate);
+  const div = await page.$('div[title="Skupno število cepljenih oseb"]');
+  await div.click({ button: 'right' });
+  await page.waitForSelector('drop-down-list-item');
+  const menuItem = await page.$('drop-down-list-item');
+  await menuItem.click();
+  await page.waitForSelector('.rowHeaders');
+  await page.waitForSelector('.bodyCells');
 
-  if (dayDiff > 0) {
-    const newObj = {
-      date: newDate,
-      ...administered,
-      ['vaccination.administered']:
-        administered['vaccination.administered.todate'] -
-        lastOld['vaccination.administered.todate'],
-      ['vaccination.administered2nd']:
-        administered['vaccination.administered2nd.todate'] -
-        lastOld['vaccination.administered2nd.todate'],
-    };
-    return [...oldData, newObj];
+  let rowHeaders = await page.$$(
+    '.rowHeaders > div > div > .pivotTableCellWrap'
+  );
+  await rowHeaders[0].click();
+  let condition = true;
+  let counter = 20;
+  let toDate1 = [];
+  let toDate2 = [];
+  let dates = [];
+
+  while (condition) {
+    for (let i = 0; i < counter; i++) {
+      await page.keyboard.press('ArrowDown');
+      const headers = await page.$$eval(
+        '.rowHeaders > div > div > .pivotTableCellWrap',
+        elements => elements.map(el => el.textContent)
+      );
+      dates = [...new Set([...dates, ...headers])];
+    }
+
+    const bodyCells = await page.$$('.bodyCells > div > div > div', elements =>
+      elements.map(el => el.textContent)
+    );
+    const cells = await Promise.all(
+      bodyCells.map(
+        async node =>
+          await node.$$eval('.pivotTableCellWrap', elements =>
+            elements.map(el => el.textContent)
+          )
+      )
+    );
+    toDate1 = [...toDate1, ...cells[0]];
+    toDate2 = [...toDate2, ...cells[1]];
+
+    const missingDatesNum = timestamps.days - dates.length;
+    counter = timestamps.days - dates.length >= 20 ? 20 : missingDatesNum;
+    condition = toDate1.length < timestamps.days;
   }
 
-  return [...oldData];
+  toDate1 = toDate1.map(string => toNumber(string));
+  toDate2 = toDate2.map(string => toNumber(string));
+
+  return toDate1.map((item, i, arr) => {
+    const diff1 = i === 0 ? item : item - arr[i - 1];
+    const diff2 = i === 0 ? toDate2[i] : toDate2[i] - toDate2[i - 1];
+
+    const [day, month, year] = dates[i].split('.');
+    const date = new Date(Date.UTC(year, month - 1, day))
+      .toISOString()
+      .slice(0, 10);
+
+    return {
+      date,
+      'vaccination.administered': diff1,
+      'vaccination.administered.todate': item,
+      'vaccination.administered2nd': diff2,
+      'vaccination.administered2nd.todate': toDate2[i],
+      'vaccination.used.todate': item + toDate2[i],
+    };
+  });
 };

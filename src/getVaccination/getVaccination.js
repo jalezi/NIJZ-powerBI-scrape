@@ -1,138 +1,108 @@
-import path from 'path';
-import readCSV from '../readCSV.js';
-
-const dir = process.cwd();
-const now = Date.now();
-const yesterday = new Date(now - 24 * 60 * 60 * 1000)
-  .toISOString()
-  .slice(0, 10);
-
-const vaccinationPath = path.resolve(dir, `csv/vaccination.csv`);
-const devVaccinationPath = path.resolve(
-  dir,
-  `csv/vaccination ${yesterday}.csv`
-);
-
-const isDev = process.env.NODE_ENV === 'development';
-const parsedVaccination = isDev
-  ? readCSV(devVaccinationPath)
-  : readCSV(vaccinationPath);
+const companyDeliveredFields = [
+  'vaccination.pfizer.delivered',
+  'vaccination.moderna.delivered',
+  'vaccination.az.delivered',
+];
 
 export default async (administered, delivered) => {
-  const oldVaccination = await parsedVaccination();
+  const deliveredToDate = Object.entries(delivered[0]).reduce(
+    (acc, [key, value]) => {
+      companyDeliveredFields.includes(key) && (acc += +value);
+      return acc;
+    },
+    0
+  );
 
-  const onlyMissingAdministered = administered
-    .map(item => {
-      const recordExists = !!oldVaccination.find(
-        oldItem => oldItem.date === item.date
+  const missingObj = {
+    ...delivered[0],
+    'vaccination.delivered.todate': deliveredToDate,
+    'vaccination.pfizer.delivered.todate': delivered[0][
+      'vaccination.pfizer.delivered'
+    ]
+      ? delivered[0]['vaccination.pfizer.delivered']
+      : 0,
+    'vaccination.moderna.delivered.todate': delivered[0][
+      'vaccination.moderna.delivered'
+    ]
+      ? delivered[0]['vaccination.moderna.delivered']
+      : 0,
+    'vaccination.az.delivered.todate': delivered[0]['vaccination.az.delivered']
+      ? delivered[0]['vaccination.az.delivered']
+      : 0,
+  };
+
+  const withDelivered = [missingObj, ...administered].map(itemAdministered => {
+    const deliveredOnDate = delivered
+      .filter(itemDelivered => itemDelivered.date === itemAdministered.date)
+      .reduce(
+        (acc, itemDelivered) => {
+          const {
+            date,
+            'vaccination.moderna.delivered': moderna,
+            'vaccination.az.delivered': az,
+            'vaccination.pfizer.delivered': pfizer,
+          } = itemDelivered;
+          acc = {
+            date,
+            'vaccination.pfizer.delivered':
+              pfizer || acc['vaccination.pfizer.delivered'],
+            'vaccination.moderna.delivered':
+              moderna || acc['vaccination.moderna.delivered'],
+            'vaccination.az.delivered': az || acc['vaccination.az.delivered'],
+          };
+          return acc;
+        },
+        {
+          date: '',
+          'vaccination.pfizer.delivered': 0,
+          'vaccination.moderna.delivered': 0,
+          'vaccination.az.delivered': 0,
+        }
       );
-      if (!recordExists) {
-        return item;
-      }
-      return null;
-    })
-    .filter(item => item !== null)
-    .map(itemAdministered => {
-      const deliveredOnDate = delivered
-        .filter(itemDelivered => itemDelivered.date === itemAdministered.date)
-        .reduce(
-          (acc, itemDelivered) => {
-            const {
-              date,
-              ['vaccination.pfizer.delivered']: pfizer,
-              ['vaccination.moderna.delivered']: moderna,
-              ['vaccination.az.delivered']: az,
-            } = itemDelivered;
-            acc = {
-              date,
-              ['vaccination.pfizer.delivered']:
-                pfizer || acc['vaccination.pfizer.delivered'],
-              ['vaccination.moderna.delivered']:
-                moderna || acc['vaccination.moderna.delivered'],
-              ['vaccination.az.delivered']:
-                az || acc['vaccination.az.delivered'],
-            };
-            return acc;
-          },
-          {
-            date: '',
-            ['vaccination.pfizer.delivered']: '',
-            ['vaccination.moderna.delivered']: '',
-            ['vaccination.az.delivered']: '',
-          }
-        );
-      return {
-        ['vaccination.delivered.todate']: null,
-        ['vaccination.pfizer.delivered']: null,
-        ['vaccination.pfizer.delivered.todate']: null,
-        ['vaccination.moderna.delivered']: null,
-        ['vaccination.moderna.delivered.todate']: null,
-        ['vaccination.az.delivered']: null,
-        ['vaccination.az.delivered.todate']: null,
-        ...(deliveredOnDate ? deliveredOnDate : {}),
-        ...itemAdministered,
-      };
-    });
+    return {
+      'vaccination.delivered.todate': 0,
+      'vaccination.pfizer.delivered': 0,
+      'vaccination.pfizer.delivered.todate': 0,
+      'vaccination.moderna.delivered': 0,
+      'vaccination.moderna.delivered.todate': 0,
+      'vaccination.az.delivered': 0,
+      'vaccination.az.delivered.todate': 0,
+      ...(deliveredOnDate ? deliveredOnDate : {}),
+      ...itemAdministered,
+    };
+  });
 
-  const combinedVacs = [...oldVaccination, ...onlyMissingAdministered].sort(
-    (a, b) => new Date(a.date) - new Date(b.date)
-  );
+  const firstItem = withDelivered[0];
+  const rest = withDelivered.slice(1, withDelivered.length);
 
-  const lastComplete = combinedVacs[oldVaccination.length - 1];
-  const onlyNew = combinedVacs.slice(
-    oldVaccination.length,
-    combinedVacs.length
-  );
+  const populate = (firstItem, rest, result = []) => {
+    const newFirst = rest[0];
+    const pfizer = newFirst['vaccination.pfizer.delivered'];
+    const moderna = newFirst['vaccination.moderna.delivered'];
+    const az = newFirst['vaccination.az.delivered'];
+    const total = pfizer + moderna + az;
 
-  const populateNewVaccination = (lastComplete, onlyNew, result = []) => {
-    const firstNew = onlyNew[0];
-    const {
-      ['vaccination.delivered.todate']: allToDate,
-      ['vaccination.pfizer.delivered.todate']: pfizerToDate,
-      ['vaccination.moderna.delivered.todate']: modernaToDate,
-      ['vaccination.az.delivered.todate']: azToDate,
-    } = lastComplete;
+    newFirst['vaccination.pfizer.delivered.todate'] =
+      firstItem['vaccination.pfizer.delivered.todate'] + pfizer;
+    newFirst['vaccination.moderna.delivered.todate'] =
+      firstItem['vaccination.moderna.delivered.todate'] + moderna;
+    newFirst['vaccination.az.delivered.todate'] =
+      firstItem['vaccination.az.delivered.todate'] + az;
+    newFirst['vaccination.delivered.todate'] =
+      firstItem['vaccination.delivered.todate'] + total;
 
-    const {
-      ['vaccination.pfizer.delivered']: pfizerDelivered,
-      ['vaccination.moderna.delivered']: modernaDelivered,
-      ['vaccination.az.delivered']: azDelivered,
-    } = firstNew;
-
-    const pfizerDlv = pfizerDelivered ? +pfizerDelivered : '';
-    const modernaDlv = modernaDelivered ? +modernaDelivered : '';
-    const azDlv = azDelivered ? +azDelivered : '';
-
-    const newPfizerToDate = +pfizerToDate + +pfizerDlv;
-    const newModernaToDate = +modernaToDate + +modernaDlv;
-    const newAzToDate = +azToDate + +azDlv;
-
-    const sum = newPfizerToDate + newModernaToDate + newAzToDate;
-
-    firstNew['vaccination.pfizer.delivered.todate'] = newPfizerToDate;
-    firstNew['vaccination.moderna.delivered.todate'] = newModernaToDate;
-    firstNew['vaccination.az.delivered.todate'] = newAzToDate;
-
-    firstNew['vaccination.delivered.todate'] = sum;
-
-    firstNew['vaccination.pfizer.delivered'] = pfizerDlv;
-    firstNew['vaccination.moderna.delivered'] = modernaDlv;
-    firstNew['vaccination.az.delivered'] = azDlv;
-
-    result.push({ ...firstNew });
-    if (onlyNew.length === 1) {
+    result.push(newFirst);
+    if (rest.length === 1) {
       return result;
     }
-
-    const onlyNewWithoutFirst = onlyNew.slice(1, onlyNew.length);
-    return populateNewVaccination(
-      { ...firstNew },
-      [...onlyNewWithoutFirst],
+    return populate(
+      { ...newFirst },
+      [...rest.slice(1, rest.length)],
       [...result]
     );
   };
 
-  const newVaccination =
-    onlyNew.length > 0 ? populateNewVaccination(lastComplete, onlyNew) : [];
-  return [...oldVaccination, ...newVaccination];
+  const vaccination = [firstItem, ...populate(firstItem, rest)];
+
+  return vaccination;
 };
