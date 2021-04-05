@@ -14,6 +14,9 @@ export default async () => {
   );
 
   const timestamp = await getTimestamp(page);
+  if (timestamp instanceof Error) {
+    return timestamp;
+  }
   const administered = await getAdministered(page);
 
   // goto page 2

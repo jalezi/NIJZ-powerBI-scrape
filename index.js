@@ -23,6 +23,9 @@ isDev && console.log(`running in ${process.env.NODE_ENV} mode!`);
 const start = async () => {
   try {
     const data = await scrape_NIJZ_powerBI();
+    if (data instanceof Error) {
+      throw data;
+    }
     const { timestamp, created, vaccination, administered, delivered } = data;
 
     console.log(`NIJZ date: ${new Date(timestamp.timestamp)}`);
@@ -32,16 +35,18 @@ const start = async () => {
       throw Error('No data! Something went wrong!');
     }
 
-    if (isDev) {
-      writeCSV(vaccination, 'vaccination', DevPath.vaccination);
-      writeCSV(administered, 'administered', DevPath.administered);
-      writeCSV(delivered, 'delivered', DevPath.delivered);
+    // if (isDev) {
+    //   writeCSV(vaccination, 'vaccination', DevPath.vaccination);
+    //   writeCSV(administered, 'administered', DevPath.administered);
+    //   writeCSV(delivered, 'delivered', DevPath.delivered);
+    //   return;
+    // }
+    if (!isDev) {
+      writeCSV(vaccination, 'vaccination');
+      writeCSV(administered, 'administered');
+      writeCSV(delivered, 'delivered');
       return;
     }
-
-    writeCSV(vaccination, 'vaccination');
-    writeCSV(administered, 'administered');
-    writeCSV(delivered, 'delivered');
   } catch (error) {
     console.log(error);
   }
