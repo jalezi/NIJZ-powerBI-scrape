@@ -73,21 +73,19 @@ export default async page => {
           )
       )
     );
-    toDate1 = [...toDate1, ...cells[0]];
-    toDate2 = [...toDate2, ...cells[1]];
-
-    const missingDatesNum = timestamps.days - dates.length;
+    toDate1 = [...toDate1, ...cells[0].slice(20 - counter, cells[0].length)];
+    toDate2 = [...toDate2, ...cells[1].slice(20 - counter, cells[0].length)];
+    const missingDatesNum = timestamps.days - toDate1.length;
     counter = timestamps.days - dates.length >= 20 ? 20 : missingDatesNum;
     condition = toDate1.length < timestamps.days;
   }
 
-  toDate1 = toDate1.map(string => toNumber(string));
-  toDate2 = toDate2.map(string => toNumber(string));
+  toDate1 = toDate1.map(string => toNumber(string)).slice(0, dates.length);
+  toDate2 = toDate2.map(string => toNumber(string)).slice(0, dates.length);
 
   return toDate1.map((item, i, arr) => {
     const diff1 = i === 0 ? item : item - arr[i - 1];
     const diff2 = i === 0 ? toDate2[i] : toDate2[i] - toDate2[i - 1];
-
     const [day, month, year] = dates[i].split('.');
     const date = new Date(Date.UTC(year, month - 1, day))
       .toISOString()
