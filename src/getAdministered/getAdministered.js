@@ -73,8 +73,22 @@ export default async page => {
           )
       )
     );
-    toDate1 = [...toDate1, ...cells[0].slice(20 - counter, cells[0].length)];
-    toDate2 = [...toDate2, ...cells[1].slice(20 - counter, cells[0].length)];
+
+    if (counter === 20) {
+      toDate1 = [...toDate1, ...cells[0]];
+      toDate2 = [...toDate2, ...cells[1]];
+    }
+
+    if (counter < 20 && cells.length === 4) {
+      toDate1 = [...toDate1, ...cells[2]];
+      toDate2 = [...toDate2, ...cells[3]];
+    }
+
+    if (counter < 20 && cells.length === 2) {
+      toDate1 = [...toDate1, ...cells[0]];
+      toDate2 = [...toDate2, ...cells[1]];
+    }
+
     const missingDatesNum = timestamps.days - toDate1.length;
     counter = timestamps.days - dates.length >= 20 ? 20 : missingDatesNum;
     condition = toDate1.length < timestamps.days;
